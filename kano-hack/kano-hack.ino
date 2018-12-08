@@ -19,7 +19,7 @@ Distributed as-is; no warranty is given.
 
 bool _BLEClientConnected = false;
 
-#define   INFO_SERVICE_UUID    "64a70010-f691-4b93-a6f4-0968f5b648f8"
+#define INFO_SERVICE_UUID    "64a70010-f691-4b93-a6f4-0968f5b648f8"
 #define IO_SERVICE_UUID      "64A70012-F691-4B93-A6F4-0968F5B648F8"
 #define SENSOR_SERVICE_UUID  "64A70011-F691-4B93-A6F4-0968F5B648F8"
 
@@ -42,14 +42,32 @@ bool _BLEClientConnected = false;
 #define BleUUIDSensorQuaternionsResetChar  "64A70004-F691-4B93-A6F4-0968F5B648F8"
 #define BleUUIDSensorTempChar              "64A70014-F691-4B93-A6F4-0968F5B648F8"
 
+BLECharacteristic *pCharacteristicInformationOrganisationChar;
+BLECharacteristic *pCharacteristicInformationSwChar;
+BLECharacteristic *pCharacteristicInformationHwChar;
+BLECharacteristic *pCharacteristicIOBatteryChar;
+BLECharacteristic *pCharacteristicUserIOUserButtonChar;
+/*
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+BLECharacteristic *pCharacteristic;
+*/
+
+bool deviceConnected = false;
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-      _BLEClientConnected = true;
+      deviceConnected = true;
     };
 
     void onDisconnect(BLEServer* pServer) {
-      _BLEClientConnected = false;
+      deviceConnected = false;
     }
 };
 
@@ -65,17 +83,17 @@ void InitBLE() {
   BLECharacteristic *pCharacteristicInformationOrganisationChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationOrganisationChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
     BLECharacteristic *pCharacteristicInformationSwChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationSwChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
      BLECharacteristic *pCharacteristicInformationHwChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationHwChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
 
 // Create the BLE Service IO
@@ -84,17 +102,17 @@ void InitBLE() {
   BLECharacteristic *pCharacteristicIOBatteryChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOBatteryChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
     BLECharacteristic *pCharacteristicUserIOUserButtonChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOUserButtonChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
      BLECharacteristic *pCharacteristicIOVibratorChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOVibratorChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
                                        
      BLECharacteristic *pCharacteristicIOLedChar = pServiceIO->createCharacteristic(
@@ -105,7 +123,7 @@ void InitBLE() {
      BLECharacteristic *pCharacteristicIOKeepAliveChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOKeepAliveChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
 
  // Create the BLE Service SENSOR
@@ -114,44 +132,47 @@ void InitBLE() {
   BLECharacteristic *pCharacteristicSensorQuaternionsChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorQuaternionsChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
     BLECharacteristic *pCharacteristicUserSensorRawChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorRawChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
      BLECharacteristic *pCharacteristicSensorMotionChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorMotionChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
                                        
      BLECharacteristic *pCharacteristicSensorMagnCalibrateChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorMagnCalibrateChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
      BLECharacteristic *pCharacteristicSensorQuaternionsResetChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorQuaternionsResetChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
      BLECharacteristic *pCharacteristicSensorTempChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorTempChar,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
-
+    
+  //Defualt Factory
+  pCharacteristicInformationOrganisationChar->setValue("Kano");
+  pCharacteristicInformationSwChar->setValue("1.1");
+  pCharacteristicInformationHwChar->setValue("1");
+  pCharacteristicIOBatteryChar->setValue("100");
+  pCharacteristicUserIOUserButtonChar->setValue("1");
+  
   pServiceInfo->start();
   pServiceIO->start();
   pServiceSensor->start();
+  
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
-  //pServer->getAdvertising()->addServiceUUID(SERVICE_UUID);
-  //pServer->getAdvertising()->addServiceUUID(pService);
-  //pIO->start();
-  //pServer->getAdvertising()->addServiceUUID(pSENSOR);
-  //pSENSOR->start();
 
   // Start advertising
   pAdvertising->start();
