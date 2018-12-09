@@ -17,8 +17,9 @@ Distributed as-is; no warranty is given.
 #include <utility/wifi_drv.h> //Only for control led RGB
 #include "SparkFunLSM6DS3.h"
 #include "Wire.h"
+#include <MadgwickAHRS.h>
 
-LSM6DS3Core myIMU( SPI_MODE, SPIIMU_SS ); //SPIIMU_SS is the CS pin for Arduino WiFi Rev2
+LSM6DS3 myIMU( SPI_MODE, SPIIMU_SS );  //SPIIMU_SS is the CS pin for Arduino WiFi Rev2
 
 #define INFO_SERVICE_UUID    "64a70010-f691-4b93-a6f4-0968f5b648f8"
 #define IO_SERVICE_UUID      "64A70012-F691-4B93-A6F4-0968F5B648F8"
@@ -101,12 +102,30 @@ BLEUnsignedCharCharacteristic sensorTempChar(BleUUIDSensorTempChar,  // standard
     BLERead | BLENotify); // remote clients will be able to get notifications if this characteristic changes
 
 long previousMillis = 0;  // last time checked, in ms
+
+Madgwick filter;
+unsigned long microsPerReading, microsPrevious;
+float accelScale, gyroScale;
     
 void setup() {
   Serial.begin(9600);
   //while (!Serial);
   Serial.println("Processor came out of reset.\n");
 
+    // start the IMU and filter
+  myIMU.settings.gyroSampleRate = 26;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
+  myIMU.settings.accelSampleRate = 26;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
+  
+  filter.begin(25);
+
+  //Call .begin() to configure the IMU
+  myIMU.begin();
+
+  // Set the accelerometer range to 2G
+  myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
+  // Set the gyroscope range to 250 degrees/second
+  myIMU.settings.gyroRange = 245;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
+  
   WiFiDrv::pinMode(25, OUTPUT);  //GREEN
   WiFiDrv::pinMode(26, OUTPUT);  //RED
   WiFiDrv::pinMode(27, OUTPUT);  //BLUE
@@ -170,6 +189,11 @@ void setup() {
   // set an initial value for the characteristic
   LedChar.setValue(0);
 
+    // assign event handlers for characteristic
+  sensorQuaternionsChar.setEventHandler(BLERead, MotionCharacteristicWritten);
+  // set an initial value for the characteristic
+  sensorQuaternionsChar.setValue(0);
+
   /* Start advertising BLE.  It will start continuously transmitting BLE
      advertising packets and will be visible to remote BLE central devices
      until it receives a new connection */
@@ -178,6 +202,10 @@ void setup() {
   BLE.advertise();
 
   Serial.println("Bluetooth device active, waiting for connections...");
+
+  //initialize variables to pace updates to correct rate
+  microsPerReading = 1000000 / 25;
+  microsPrevious = micros();
 }
 
 void loop() {
@@ -234,4 +262,70 @@ void ledCharacteristicWritten(BLEDevice central, BLECharacteristic characteristi
     WiFiDrv::analogWrite(26, 0);  // for configurable brightness
     WiFiDrv::analogWrite(27, 0);  // for configurable brightness
   }
+}
+
+void MotionCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic)  {
+  int aix, aiy, aiz;
+  int gix, giy, giz;
+  float ax, ay, az;
+  float gx, gy, gz;
+  float roll, pitch, heading;
+  unsigned long microsNow;
+
+  // check if it's time to read data and update the filter
+  microsNow = micros();
+  if (microsNow - microsPrevious >= microsPerReading) {
+    
+   // read raw data from IMU
+  //Get all parameters
+    aix = myIMU.readFloatAccelX();
+    aiy = myIMU.readFloatAccelY();
+    aiz = myIMU.readFloatAccelZ();
+    gix = myIMU.readFloatGyroX();
+    giy = myIMU.readFloatGyroY();
+    giz = myIMU.readFloatGyroZ();
+    
+    // convert from raw data to gravity and degrees/second units
+    ax = convertRawAcceleration(aix);
+    ay = convertRawAcceleration(aiy);
+    az = convertRawAcceleration(aiz);
+    gx = convertRawGyro(gix);
+    gy = convertRawGyro(giy);
+    gz = convertRawGyro(giz);
+
+    // update the filter, which computes orientation
+    filter.updateIMU(gx, gy, gz, ax, ay, az);
+
+    // print the heading, pitch and roll
+    roll = filter.getRoll();
+    pitch = filter.getPitch();
+    heading = filter.getYaw();
+    Serial.print("Orientation: ");
+    Serial.print(heading);
+    Serial.print(" ");
+    Serial.print(pitch);
+    Serial.print(" ");
+    Serial.println(roll);
+
+    // increment previous time, so we keep proper pace
+    microsPrevious = microsPrevious + microsPerReading;
+  }
+}
+
+float convertRawAcceleration(int aRaw) {
+  // since we are using 2G range
+  // -2g maps to a raw value of -32768
+  // +2g maps to a raw value of 32767
+  
+  float a = (aRaw * 2.0) / 32768.0;
+  return a;
+}
+
+float convertRawGyro(int gRaw) {
+  // since we are using 250 degrees/seconds range
+  // -250 maps to a raw value of -32768
+  // +250 maps to a raw value of 32767
+  
+  float g = (gRaw * 250.0) / 32768.0;
+  return g;
 }
