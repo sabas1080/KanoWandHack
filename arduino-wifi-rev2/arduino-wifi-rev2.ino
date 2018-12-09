@@ -102,6 +102,7 @@ BLEUnsignedCharCharacteristic sensorTempChar(BleUUIDSensorTempChar,  // standard
     BLERead | BLENotify); // remote clients will be able to get notifications if this characteristic changes
 
 long previousMillis = 0;  // last time checked, in ms
+int oldBatteryLevel = 0;  // last battery level reading from analog input
 
 Madgwick filter;
 unsigned long microsPerReading, microsPrevious;
@@ -227,6 +228,7 @@ void loop() {
       // if 200ms have passed:
       if (currentMillis - previousMillis >= 200) {
         previousMillis = currentMillis;
+        updateBatteryLevel();
       }
     }
     // when the central disconnects, turn off the LED:
@@ -328,4 +330,19 @@ float convertRawGyro(int gRaw) {
   
   float g = (gRaw * 250.0) / 32768.0;
   return g;
+}
+
+void updateBatteryLevel() {
+  /* Read the current voltage level on the A0 analog input pin.
+     This is used here to simulate the charge level of a battery.
+  */
+  int battery = analogRead(A0);
+  int batteryLevel = map(battery, 0, 1023, 0, 100);
+
+  if (batteryLevel != oldBatteryLevel) {      // if the battery level has changed
+    Serial.print("Battery Level % is now: "); // print it
+    Serial.println(batteryLevel);
+    ioBatteryChar.writeValue(batteryLevel);  // and update the battery level characteristic
+    oldBatteryLevel = batteryLevel;           // save the level for next comparison
+  }
 }
