@@ -160,7 +160,15 @@ void setup() {
   sensorService.addCharacteristic(sensorQuaternionsResetChar); // add the organisationChar characteristic
   sensorService.addCharacteristic(sensorTempChar); // add the organisationChar characteristic
   BLE.addService(sensorService); // Add the info service
-  
+
+  // assign event handlers for connected, disconnected to peripheral
+  BLE.setEventHandler(BLEConnected, blePeripheralConnectHandler);
+  BLE.setEventHandler(BLEDisconnected, blePeripheralDisconnectHandler);
+
+  // assign event handlers for characteristic
+  LedChar.setEventHandler(BLEWritten, ledCharacteristicWritten);
+  // set an initial value for the characteristic
+  LedChar.setValue(0);
 
   /* Start advertising BLE.  It will start continuously transmitting BLE
      advertising packets and will be visible to remote BLE central devices
@@ -191,7 +199,6 @@ void loop() {
       // if 200ms have passed:
       if (currentMillis - previousMillis >= 200) {
         previousMillis = currentMillis;
-        updateLedRGB();
       }
     }
     // when the central disconnects, turn off the LED:
@@ -201,9 +208,30 @@ void loop() {
   } 
 }
 
-updateLedRGB(){
-  WiFiDrv::analogWrite(25, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(26, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(27, 128);  // for configurable brightness
+void blePeripheralConnectHandler(BLEDevice central) {
+  // central connected event handler
+  Serial.print("Connected event, central: ");
+  Serial.println(central.address());
 }
 
+void blePeripheralDisconnectHandler(BLEDevice central) {
+  // central disconnected event handler
+  Serial.print("Disconnected event, central: ");
+  Serial.println(central.address());
+}
+
+void ledCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  // central wrote new value to characteristic, update LED
+  Serial.print("Characteristic event, written: ");
+  if (LedChar.value()) {
+    Serial.println("LED on");
+    WiFiDrv::analogWrite(25, 128);  // for configurable brightness
+    WiFiDrv::analogWrite(26, 128);  // for configurable brightness
+    WiFiDrv::analogWrite(27, 128);  // for configurable brightness
+  } else {
+    Serial.println("LED off");
+    WiFiDrv::analogWrite(25, 0);  // for configurable brightness
+    WiFiDrv::analogWrite(26, 0);  // for configurable brightness
+    WiFiDrv::analogWrite(27, 0);  // for configurable brightness
+  }
+}
