@@ -17,8 +17,6 @@ Distributed as-is; no warranty is given.
 #include <BLEServer.h>
 #include <BLE2902.h>
 
-bool _BLEClientConnected = false;
-
 #define INFO_SERVICE_UUID    "64a70010-f691-4b93-a6f4-0968f5b648f8"
 #define IO_SERVICE_UUID      "64A70012-F691-4B93-A6F4-0968F5B648F8"
 #define SENSOR_SERVICE_UUID  "64A70011-F691-4B93-A6F4-0968F5B648F8"
@@ -42,24 +40,28 @@ bool _BLEClientConnected = false;
 #define BleUUIDSensorQuaternionsResetChar  "64A70004-F691-4B93-A6F4-0968F5B648F8"
 #define BleUUIDSensorTempChar              "64A70014-F691-4B93-A6F4-0968F5B648F8"
 
-BLECharacteristic *pCharacteristicInformationOrganisationChar;
-BLECharacteristic *pCharacteristicInformationSwChar;
-BLECharacteristic *pCharacteristicInformationHwChar;
-BLECharacteristic *pCharacteristicIOBatteryChar;
-BLECharacteristic *pCharacteristicUserIOUserButtonChar;
-/*
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-BLECharacteristic *pCharacteristic;
-*/
+BLEServer* pServer = NULL;
+
+BLECharacteristic *pCharacteristicInformationOrganisationChar = NULL;
+BLECharacteristic *pCharacteristicInformationSwChar = NULL;
+BLECharacteristic *pCharacteristicInformationHwChar = NULL;
+BLECharacteristic *pCharacteristicIOBatteryChar = NULL;
+BLECharacteristic *pCharacteristicUserIOUserButtonChar = NULL;
+
+BLECharacteristic *pCharacteristicIOVibratorChar = NULL;
+BLECharacteristic *pCharacteristicIOLedChar = NULL;
+BLECharacteristic *pCharacteristicIOKeepAliveChar = NULL;
+BLECharacteristic *pCharacteristicSensorQuaternionsChar = NULL;
+BLECharacteristic *pCharacteristicUserSensorRawChar = NULL;
+BLECharacteristic *pCharacteristicSensorMotionChar = NULL;
+BLECharacteristic *pCharacteristicSensorMagnCalibrateChar = NULL;
+BLECharacteristic *pCharacteristicSensorQuaternionsResetChar = NULL;
+BLECharacteristic *pCharacteristicSensorTempChar = NULL;
+
 
 bool deviceConnected = false;
+bool oldDeviceConnected = false;
+uint8_t value = 0;
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -80,17 +82,17 @@ void InitBLE() {
   // Create the BLE Service INFO
   BLEService *pServiceInfo = pServer->createService(INFO_SERVICE_UUID);
 
-  BLECharacteristic *pCharacteristicInformationOrganisationChar = pServiceInfo->createCharacteristic(
+   pCharacteristicInformationOrganisationChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationOrganisationChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-    BLECharacteristic *pCharacteristicInformationSwChar = pServiceInfo->createCharacteristic(
+    pCharacteristicInformationSwChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationSwChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-     BLECharacteristic *pCharacteristicInformationHwChar = pServiceInfo->createCharacteristic(
+     pCharacteristicInformationHwChar = pServiceInfo->createCharacteristic(
                                          BleUUIDInformationHwChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
@@ -99,28 +101,28 @@ void InitBLE() {
 // Create the BLE Service IO
   BLEService *pServiceIO = pServer->createService(IO_SERVICE_UUID);
 
-  BLECharacteristic *pCharacteristicIOBatteryChar = pServiceIO->createCharacteristic(
+  pCharacteristicIOBatteryChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOBatteryChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-    BLECharacteristic *pCharacteristicUserIOUserButtonChar = pServiceIO->createCharacteristic(
+    pCharacteristicUserIOUserButtonChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOUserButtonChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-     BLECharacteristic *pCharacteristicIOVibratorChar = pServiceIO->createCharacteristic(
+     pCharacteristicIOVibratorChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOVibratorChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
                                        
-     BLECharacteristic *pCharacteristicIOLedChar = pServiceIO->createCharacteristic(
+     pCharacteristicIOLedChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOLedChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
-     BLECharacteristic *pCharacteristicIOKeepAliveChar = pServiceIO->createCharacteristic(
+     pCharacteristicIOKeepAliveChar = pServiceIO->createCharacteristic(
                                          BleUUIDIOKeepAliveChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
@@ -129,33 +131,33 @@ void InitBLE() {
  // Create the BLE Service SENSOR
   BLEService *pServiceSensor = pServer->createService(SENSOR_SERVICE_UUID);
 
-  BLECharacteristic *pCharacteristicSensorQuaternionsChar = pServiceSensor->createCharacteristic(
+  pCharacteristicSensorQuaternionsChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorQuaternionsChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-    BLECharacteristic *pCharacteristicUserSensorRawChar = pServiceSensor->createCharacteristic(
+    pCharacteristicUserSensorRawChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorRawChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-     BLECharacteristic *pCharacteristicSensorMotionChar = pServiceSensor->createCharacteristic(
+     pCharacteristicSensorMotionChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorMotionChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
                                        
-     BLECharacteristic *pCharacteristicSensorMagnCalibrateChar = pServiceSensor->createCharacteristic(
+     pCharacteristicSensorMagnCalibrateChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorMagnCalibrateChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-     BLECharacteristic *pCharacteristicSensorQuaternionsResetChar = pServiceSensor->createCharacteristic(
+     pCharacteristicSensorQuaternionsResetChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorQuaternionsResetChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-     BLECharacteristic *pCharacteristicSensorTempChar = pServiceSensor->createCharacteristic(
+     pCharacteristicSensorTempChar = pServiceSensor->createCharacteristic(
                                          BleUUIDSensorTempChar,
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
