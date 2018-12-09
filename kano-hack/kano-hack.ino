@@ -61,7 +61,8 @@ BLECharacteristic *pCharacteristicSensorTempChar = NULL;
 
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
-uint8_t value = 0;
+uint8_t button = 0;
+int oldBatteryLevel = 0;  // last battery level reading from analog input
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -165,33 +166,78 @@ void InitBLE() {
     
   //Defualt Factory
   pCharacteristicInformationOrganisationChar->setValue("Kano");
-  pCharacteristicInformationSwChar->setValue("1.1");
+  pCharacteristicInformationSwChar->setValue("1.1.5");
   pCharacteristicInformationHwChar->setValue("1");
-  pCharacteristicIOBatteryChar->setValue("100");
-  pCharacteristicUserIOUserButtonChar->setValue("1");
   
   pServiceInfo->start();
   pServiceIO->start();
   pServiceSensor->start();
   
-  BLEAdvertising *pAdvertising = pServer->getAdvertising();
-
-  // Start advertising
-  pAdvertising->start();
+  //BLEAdvertising *pAdvertising = pServer->getAdvertising();
+   pServer->getAdvertising()->start();
 }
 
 void setup () {
   Serial.begin(9600);
+  Serial.println("Config...");
+  pinMode(5,INPUT_PULLUP);
+  
+  InitBLE();
   
   Serial.println("Ready Wandhack");
- 
-  InitBLE();
-
 }
 
 void loop () {
- 
+    // notify changed value
+    if (deviceConnected) {
+      updateBatteryLevel();
+      buttonstate();
+    }
+    // disconnecting
+    if (!deviceConnected && oldDeviceConnected) {
+        delay(500); // give the bluetooth stack the chance to get things ready
+        pServer->startAdvertising(); // restart advertising
+        Serial.println("start advertising");
+        oldDeviceConnected = deviceConnected;
+    }
+    // connecting
+    if (deviceConnected && !oldDeviceConnected) {
+        // do stuff here on connecting
+        oldDeviceConnected = deviceConnected;
+    }
+  delay(1000);
+}
 
+void buttonstate(){
+  if(digitalRead(5)==0){
+    button = 51; 
+  }
+  else{
+    button = 0;
+  }
+  pCharacteristicUserIOUserButtonChar->setValue(&button,1);
+  pCharacteristicUserIOUserButtonChar->notify();
+}
+
+void updateBatteryLevel() {
+  /* Read the current voltage level on the A0 analog input pin.
+     This is used here to simulate the charge level of a battery.
+  */
+  int battery = analogRead(A0);
+  uint16_t batteryLevel = map(battery, 0, 1023, 0, 100);
+
+  if (batteryLevel != oldBatteryLevel) {      // if the battery level has changed
+    Serial.print("Battery Level % is now: "); // print it
+    Serial.println(batteryLevel);
+
+        uint8_t batteryData[2];
+        //uint16_t batteryValue = (uint16_t)(10);
+        batteryData[1] = 0;
+        batteryData[0] = (uint16_t)(batteryLevel);
+        pCharacteristicIOBatteryChar->setValue(batteryData, 2);   // and update the battery level characteristic
+        pCharacteristicIOBatteryChar->notify();
+        oldBatteryLevel = batteryLevel;           // save the level for next comparison
+  }
 }
 
 
