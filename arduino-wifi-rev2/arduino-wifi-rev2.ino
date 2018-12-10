@@ -101,6 +101,8 @@ BLEUnsignedCharCharacteristic sensorQuaternionsResetChar(BleUUIDSensorQuaternion
 BLEUnsignedCharCharacteristic sensorTempChar(BleUUIDSensorTempChar,  // standard 16-bit characteristic UUID
     BLERead | BLENotify); // remote clients will be able to get notifications if this characteristic changes
 
+const int buttonA = 5;     // the number of the pushbutton pin
+
 long previousMillis = 0;  // last time checked, in ms
 int oldBatteryLevel = 0;  // last battery level reading from analog input
 
@@ -113,7 +115,7 @@ void setup() {
   //while (!Serial);
   Serial.println("Processor came out of reset.\n");
 
-    // start the IMU and filter
+  // start the IMU and filter
   myIMU.settings.gyroSampleRate = 26;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
   myIMU.settings.accelSampleRate = 26;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
   
@@ -133,6 +135,8 @@ void setup() {
   WiFiDrv::analogWrite(25, 128);  // for configurable brightness
   WiFiDrv::analogWrite(26, 128);  // for configurable brightness
   WiFiDrv::analogWrite(27, 128);  // for configurable brightness
+
+  pinMode(buttonA, INPUT_PULLUP);
 
    // begin initialization
   if (!BLE.begin()) {
@@ -190,7 +194,7 @@ void setup() {
   // set an initial value for the characteristic
   LedChar.setValue(0);
 
-    // assign event handlers for characteristic
+  // assign event handlers for characteristic
   sensorQuaternionsChar.setEventHandler(BLERead, MotionCharacteristicWritten);
   // set an initial value for the characteristic
   sensorQuaternionsChar.setValue(0);
@@ -210,32 +214,20 @@ void setup() {
 }
 
 void loop() {
-    // wait for a BLE central
-  BLEDevice central = BLE.central();
+  // poll for BLE events
+  BLE.poll();
+  
+  // read the current button pin state
+  char buttonValue = digitalRead(buttonA);
 
-  // if a central is connected to the peripheral:
-  if (central) {
-    Serial.print("Connected to central: ");
-    // print the central's BT address:
-    Serial.println(central.address());
-    // turn on the LED to indicate the connection:
-    digitalWrite(LED_BUILTIN, HIGH);
+  // has the value changed since the last read
+  bool buttonChanged = (ioUserButtonChar.value() != buttonValue);
 
-    // check every 200ms
-    // while the central is connected:
-    while (central.connected()) {
-      long currentMillis = millis();
-      // if 200ms have passed:
-      if (currentMillis - previousMillis >= 200) {
-        previousMillis = currentMillis;
-        updateBatteryLevel();
-      }
-    }
-    // when the central disconnects, turn off the LED:
-    digitalWrite(LED_BUILTIN, LOW);
-    Serial.print("Disconnected from central: ");
-    Serial.println(central.address());
-  } 
+  if (buttonChanged) {
+    // button state changed, update characteristics
+    ioUserButtonChar.setValue(buttonValue);
+    Serial.println(F("Pressed Button"));
+  }
 }
 
 void blePeripheralConnectHandler(BLEDevice central) {
