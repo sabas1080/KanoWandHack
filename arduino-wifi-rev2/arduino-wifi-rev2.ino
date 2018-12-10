@@ -75,8 +75,8 @@ BLEUnsignedCharCharacteristic ioUserButtonChar(BleUUIDIOUserButtonChar,  // stan
 BLEUnsignedCharCharacteristic ioVibratorChar(BleUUIDIOVibratorChar,  // standard 16-bit characteristic UUID
     BLERead | BLENotify); // remote clients will be able to get notifications if this characteristic changes
     // BLE Led Characteristic
-BLEUnsignedCharCharacteristic LedChar(BleUUIDIOLedChar,  // standard 16-bit characteristic UUID
-    BLEWrite | BLENotify); // remote clients will be able to get notifications if this characteristic changes
+BLECharacteristic LedChar(BleUUIDIOLedChar,  // standard 16-bit characteristic UUID
+    BLEWrite | BLENotify,3); // remote clients will be able to get notifications if this characteristic changes
     // BLE Keep Alive Characteristic
 BLEUnsignedCharCharacteristic ioKeepAliveChar(BleUUIDIOKeepAliveChar,  // standard 16-bit characteristic UUID
     BLERead | BLENotify); // remote clients will be able to get notifications if this characteristic changes
