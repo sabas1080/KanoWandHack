@@ -13,8 +13,6 @@ Distributed as-is; no warranty is given.
 ************************************************************************/
 #include <ArduinoBLE.h>
 #include <SPI.h>
-#include <WiFiNINA.h> //Only for control led RGB
-#include <utility/wifi_drv.h> //Only for control led RGB
 #include "SparkFunLSM6DS3.h"
 #include "Wire.h"
 #include <MadgwickAHRS.h>
@@ -128,13 +126,9 @@ void setup() {
   myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
   // Set the gyroscope range to 250 degrees/second
   myIMU.settings.gyroRange = 245;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
+
   
-  WiFiDrv::pinMode(25, OUTPUT);  //GREEN
-  WiFiDrv::pinMode(26, OUTPUT);  //RED
-  WiFiDrv::pinMode(27, OUTPUT);  //BLUE
-  WiFiDrv::analogWrite(25, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(26, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(27, 128);  // for configurable brightness
+
 
   pinMode(buttonA, INPUT_PULLUP);
 
@@ -247,14 +241,8 @@ void ledCharacteristicWritten(BLEDevice central, BLECharacteristic characteristi
   Serial.print("Characteristic event, written: ");
   if (LedChar.value()) {
     Serial.println("LED on");
-    WiFiDrv::analogWrite(25, 128);  // for configurable brightness
-    WiFiDrv::analogWrite(26, 128);  // for configurable brightness
-    WiFiDrv::analogWrite(27, 128);  // for configurable brightness
   } else {
     Serial.println("LED off");
-    WiFiDrv::analogWrite(25, 0);  // for configurable brightness
-    WiFiDrv::analogWrite(26, 0);  // for configurable brightness
-    WiFiDrv::analogWrite(27, 0);  // for configurable brightness
   }
 }
 
