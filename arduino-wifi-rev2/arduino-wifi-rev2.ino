@@ -193,6 +193,11 @@ void setup() {
   // set an initial value for the characteristic
   sensorQuaternionsChar.setValue(0);
 
+  //Defualt Factory
+  organisationChar.setValue("Kano Computing");
+  informationSwChar.setValue("1.0.4");
+  informationHwChar.setValue("3");
+
   /* Start advertising BLE.  It will start continuously transmitting BLE
      advertising packets and will be visible to remote BLE central devices
      until it receives a new connection */
