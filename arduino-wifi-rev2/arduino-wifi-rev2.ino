@@ -14,7 +14,6 @@ Distributed as-is; no warranty is given.
 #include <ArduinoBLE.h>
 #include <SPI.h>
 #include "SparkFunLSM6DS3.h"
-#include "Wire.h"
 #include <MadgwickAHRS.h>
 
 LSM6DS3 myIMU( SPI_MODE, SPIIMU_SS );  //SPIIMU_SS is the CS pin for Arduino WiFi Rev2
