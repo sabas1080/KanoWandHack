@@ -259,23 +259,15 @@ void MotionCharacteristicWritten(BLEDevice central, BLECharacteristic characteri
   microsNow = micros();
   if (microsNow - microsPrevious >= microsPerReading) {
     
-   // read raw data from IMU
-  //Get all parameters
-    aix = myIMU.readFloatAccelX();
-    aiy = myIMU.readFloatAccelY();
-    aiz = myIMU.readFloatAccelZ();
-    gix = myIMU.readFloatGyroX();
-    giy = myIMU.readFloatGyroY();
-    giz = myIMU.readFloatGyroZ();
+    // read raw data from IMU and convert from raw data to gravity and degrees/second units
+    //Get all parameters
+    ax = myIMU.readFloatAccelX();
+    ay = myIMU.readFloatAccelY();
+    az = myIMU.readFloatAccelZ();
+    gx = myIMU.readFloatGyroX();
+    gy = myIMU.readFloatGyroY();
+    gz = myIMU.readFloatGyroZ();
     
-    // convert from raw data to gravity and degrees/second units
-    ax = convertRawAcceleration(aix);
-    ay = convertRawAcceleration(aiy);
-    az = convertRawAcceleration(aiz);
-    gx = convertRawGyro(gix);
-    gy = convertRawGyro(giy);
-    gz = convertRawGyro(giz);
-
     // update the filter, which computes orientation
     filter.updateIMU(gx, gy, gz, ax, ay, az);
 
@@ -293,24 +285,6 @@ void MotionCharacteristicWritten(BLEDevice central, BLECharacteristic characteri
     // increment previous time, so we keep proper pace
     microsPrevious = microsPrevious + microsPerReading;
   }
-}
-
-float convertRawAcceleration(int aRaw) {
-  // since we are using 2G range
-  // -2g maps to a raw value of -32768
-  // +2g maps to a raw value of 32767
-  
-  float a = (aRaw * 2.0) / 32768.0;
-  return a;
-}
-
-float convertRawGyro(int gRaw) {
-  // since we are using 250 degrees/seconds range
-  // -250 maps to a raw value of -32768
-  // +250 maps to a raw value of 32767
-  
-  float g = (gRaw * 250.0) / 32768.0;
-  return g;
 }
 
 void updateBatteryLevel() {
