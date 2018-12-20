@@ -116,18 +116,12 @@ void setup() {
   myIMU.settings.gyroSampleRate = 26;   //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666
   myIMU.settings.accelSampleRate = 26;  //Hz.  Can be: 13, 26, 52, 104, 208, 416, 833, 1666, 3332, 6664, 13330
   
-  filter.begin(25);
-
-  //Call .begin() to configure the IMU
-  myIMU.begin();
+  filter.begin(26);
 
   // Set the accelerometer range to 2G
   myIMU.settings.accelRange = 2;      //Max G force readable.  Can be: 2, 4, 8, 16
   // Set the gyroscope range to 250 degrees/second
   myIMU.settings.gyroRange = 245;   //Max deg/s.  Can be: 125, 245, 500, 1000, 2000
-
-  
-
 
   pinMode(buttonA, INPUT_PULLUP);
 
@@ -147,6 +141,9 @@ void setup() {
   {
     Serial.print("\nbeginCore() passed.\n");
   }
+
+  //Call .begin() to configure the IMU
+  myIMU.begin();
 
   /* Set a local name for the BLE device
      This name will appear in advertising packets
@@ -207,7 +204,7 @@ void setup() {
   Serial.println("Bluetooth device active, waiting for connections...");
 
   //initialize variables to pace updates to correct rate
-  microsPerReading = 1000000 / 25;
+  microsPerReading = 1000000 / 26;
   microsPrevious = micros();
 }
 
